@@ -63,6 +63,32 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .day.today .d{color:var(--fg);font-weight:600}
 .status{font-size:13px;color:var(--muted);padding:12px 14px;border-radius:10px;border:1px dashed var(--line)}
 .status.err{color:var(--pink);border-color:var(--pink)}
+.headrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.segbtn{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg)}
+.segbtn button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.segbtn button[aria-pressed=true]{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.segbtn button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.leads{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px}
+.lead{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel)}
+.lead .top{display:flex;align-items:flex-start;gap:10px}
+.lead .rk{flex:none;width:28px;height:28px;border-radius:50%;background:var(--grid);display:grid;place-items:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.lead .rk.hot{background:var(--pink);color:#fff}
+.lead .who{flex:1;min-width:0}
+.lead .who strong{font-size:16px;display:block}
+.lead .who span{font-size:13px;color:var(--muted)}
+.pill{flex:none;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.hot{border-color:var(--ok);color:var(--ok);font-weight:600}
+.pill.out{color:var(--muted);background:var(--grid)}
+.lead .info{font-size:12px;color:var(--muted)}
+.blk{font-size:14px;display:flex;flex-direction:column;gap:3px}
+.blk .ttl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.blk .ttl i{font-style:normal;font-weight:600;color:var(--teal-d);text-transform:none;letter-spacing:0;font-size:12px}
+.blk p{margin:0}
+.blk b{font-weight:600}
+@media (max-width:560px){.lead .top{flex-wrap:wrap}.lead .who{flex-basis:calc(100% - 40px)}.lead .top .pill{margin-left:38px}}
+.lead details{font-size:13px;color:var(--muted)}
+.lead details summary{cursor:pointer;color:var(--teal-d)}
+.lead details .old{margin-top:6px;padding-left:10px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:6px}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:560px){.row{grid-template-columns:1fr auto;gap:6px 10px}.row .bar{grid-column:1 / -1;order:3}}
 </style>
@@ -89,6 +115,14 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div><h2 id="h-dept">Progress per departemen</h2><p class="note">Jumlah task tiap departemen menurut statusnya.</p></div>
   <div class="legend"><span><i class="sw" style="background:var(--ok)"></i>Target tercapai</span><span><i class="sw" style="background:var(--warn)"></i>Proses</span><span><i class="sw" style="background:var(--grid);border:1px solid var(--line)"></i>Belum mulai</span></div>
   <div class="rows" id="dept"></div>
+</section>
+
+<section class="panel" aria-labelledby="h-lead">
+  <div class="headrow">
+    <div><h2 id="h-lead">Detail lead peluang closing</h2><p class="note">Status terbaru dan last update tiap lead. Nama disingkat untuk menjaga privasi calon mitra.</p></div>
+    <div class="segbtn" role="group" aria-label="Pilih daftar lead"><button type="button" data-f="6" aria-pressed="true">6 super prioritas</button><button type="button" data-f="all" aria-pressed="false">Semua 19 lead</button></div>
+  </div>
+  <div class="leads" id="leads"></div>
 </section>
 
 <div class="two">
@@ -141,6 +175,51 @@ function meter(node, val, r, o){
   node.setAttribute('role','img'); node.setAttribute('aria-label', val+' dari target realistis '+r+' dan optimis '+o);
 }
 
+let LEADS=[], LEAD_FILTER='6';
+function parseLog(text){
+  return String(text||'').split(/\n\s*\n/).map((blk)=>blk.split('\n').map((x)=>x.trim()).filter(Boolean)).filter((l)=>l.length).map((l)=>
+    /^(\d{1,2}\/\d{1,2}\/\d{4}|Sebelum)/.test(l[0]) ? {tgl:l[0], lines:l.slice(1)} : {tgl:'', lines:l});
+}
+function lineEl(s){
+  const p=el('p'); const m=/^([•→\-]?\s*[A-Za-z ]{2,12}:)\s*(.*)$/.exec(s);
+  if(m){ p.append(el('b',null,m[1]+' '), document.createTextNode(m[2])); } else p.textContent=s;
+  return p;
+}
+function entryBlock(title, e){
+  const b=el('div','blk'); const tt=el('div','ttl',title); if(e && e.tgl) tt.append(el('i',null,e.tgl)); b.append(tt);
+  if(!e || !e.lines.length){ b.append(el('p',null,'—')); return b; }
+  e.lines.forEach((s)=>b.append(lineEl(s)));
+  return b;
+}
+function renderLeads(){
+  const box=$('leads'); box.replaceChildren();
+  const list = LEADS.filter((l)=> LEAD_FILTER==='all' || Number(l.rank)<=6);
+  if(!list.length){ box.append(el('p','note','Belum ada data lead.')); return; }
+  list.forEach((l)=>{
+    const c=el('article','lead');
+    const top=el('div','top');
+    top.append(el('span','rk'+(Number(l.rank)<=6?' hot':''), l.rank));
+    const who=el('div','who'); who.append(el('strong',null,l.nama), el('span',null,l.kota)); top.append(who);
+    top.append(el('span','pill'+(/^[56]\./.test(l.stage)||l.stage==='Sudah fix'?' hot':(/Tidak|Waiting/.test(l.stage)?' out':'')), l.stage||'—'));
+    c.append(top);
+    c.append(el('div','info','PIC: '+(l.pic||'—')+(l.tier?' · Tier '+l.tier:'')));
+    const st=parseLog(l.status), up=parseLog(l.update);
+    c.append(entryBlock('Status terbaru', st[0]));
+    c.append(entryBlock('Last update', up[0]));
+    const old=[...st.slice(1).map((e)=>['Status',e]), ...up.slice(1).map((e)=>['Update',e])];
+    if(old.length){
+      const d=el('details'); d.append(el('summary',null,'Riwayat sebelumnya ('+old.length+')'));
+      const o=el('div','old'); old.forEach(([k,e])=>o.append(entryBlock(k, e))); d.append(o); c.append(d);
+    }
+    box.append(c);
+  });
+}
+document.querySelectorAll('.segbtn button').forEach((b)=>b.addEventListener('click',()=>{
+  LEAD_FILTER=b.dataset.f;
+  document.querySelectorAll('.segbtn button').forEach((x)=>x.setAttribute('aria-pressed', String(x===b)));
+  renderLeads();
+}));
+
 function render(data){
   const by = (sec) => data.filter((r) => r.bagian===sec);
   const kpi = Object.fromEntries(by('kpi').map((r)=>[r.kunci,r]));
@@ -160,6 +239,10 @@ function render(data){
   let t = 'Booking fee masuk '+fmt(num(bf.a))+' dari target '+fmt(num(bf.b))+'–'+fmt(num(bf.c))+'. '+fmt(num(tk.a))+' dari '+fmt(num(tk.b))+' task sudah mencapai target realistis';
   if(lead && lead.ok>0) t += ', paling maju '+lead.label+' ('+lead.ok+' dari '+lead.total+' task)';
   $('take').textContent = t+'.';
+
+  // leads
+  LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f}));
+  renderLeads();
 
   // dept
   const dn=$('dept'); dn.replaceChildren();
