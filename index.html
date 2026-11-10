@@ -64,7 +64,7 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .status{font-size:13px;color:var(--muted);padding:12px 14px;border-radius:10px;border:1px dashed var(--line)}
 .status.err{color:var(--pink);border-color:var(--pink)}
 .headrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
-.segbtn{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg)}
+.segbtn{display:inline-flex;flex-wrap:wrap;max-width:100%;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg)}
 .segbtn button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
 .segbtn button[aria-pressed=true]{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .segbtn button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
@@ -86,6 +86,23 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .blk p{margin:0}
 .blk b{font-weight:600}
 @media (max-width:560px){.lead .top{flex-wrap:wrap}.lead .who{flex-basis:calc(100% - 40px)}.lead .top .pill{margin-left:38px}}
+.tasks{display:flex;flex-direction:column;gap:20px}
+.tgrp h3{margin:0 0 10px;font-size:15px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tgrp h3 span{font-size:13px;font-weight:500;color:var(--muted)}
+.tgrp .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:10px}
+.task{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0;background:var(--panel)}
+.task .top{display:flex;align-items:flex-start;gap:10px}
+.task .id{flex:none;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--teal-d);background:var(--grid);border-radius:6px;padding:2px 6px;margin-top:1px}
+.task .nm{flex:1;min-width:0;font-weight:600;font-size:14px}
+.task .prog{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;font-size:12px;color:var(--muted)}
+.task .prog .meter{margin:0}
+.task .prog strong{color:var(--fg);font-size:13px}
+.task .none{font-size:13px;color:var(--muted);font-style:italic;margin:0}
+.task details{font-size:13px;color:var(--muted)}
+.task details summary{cursor:pointer;color:var(--teal-d)}
+.task details .old{margin-top:6px;padding-left:10px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.pill.prog{border-color:var(--warn);color:var(--warn);font-weight:600}
+@media (max-width:560px){.task .top{flex-wrap:wrap}.task .nm{flex-basis:calc(100% - 50px)}.task .top .pill{margin-left:44px}}
 .lead details{font-size:13px;color:var(--muted)}
 .lead details summary{cursor:pointer;color:var(--teal-d)}
 .lead details .old{margin-top:6px;padding-left:10px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:6px}
@@ -117,10 +134,18 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div class="rows" id="dept"></div>
 </section>
 
+<section class="panel" aria-labelledby="h-task">
+  <div class="headrow">
+    <div><h2 id="h-task">Progress task per departemen</h2><p class="note">Angka aktual vs target realistis–optimis, plus catatan laporan harian terbaru tiap task.</p></div>
+    <div class="segbtn" id="tfilter" role="group" aria-label="Pilih departemen"></div>
+  </div>
+  <div class="tasks" id="tasks"></div>
+</section>
+
 <section class="panel" aria-labelledby="h-lead">
   <div class="headrow">
-    <div><h2 id="h-lead">Detail lead peluang closing</h2><p class="note">Status terbaru dan last update tiap lead. Nama disingkat untuk menjaga privasi calon mitra.</p></div>
-    <div class="segbtn" role="group" aria-label="Pilih daftar lead"><button type="button" data-f="6" aria-pressed="true">6 super prioritas</button><button type="button" data-f="all" aria-pressed="false">Semua 19 lead</button></div>
+    <div><h2 id="h-lead">Detail lead peluang closing</h2><p class="note">Status terbaru dan last update tiap lead, langsung dari sheet Peluang Closing.</p></div>
+    <div class="segbtn" id="lfilter" role="group" aria-label="Pilih daftar lead"><button type="button" data-f="6" aria-pressed="true">6 super prioritas</button><button type="button" data-f="all" aria-pressed="false">Semua 19 lead</button></div>
   </div>
   <div class="leads" id="leads"></div>
 </section>
@@ -181,7 +206,7 @@ function parseLog(text){
     /^(\d{1,2}\/\d{1,2}\/\d{4}|Sebelum)/.test(l[0]) ? {tgl:l[0], lines:l.slice(1)} : {tgl:'', lines:l});
 }
 function lineEl(s){
-  const p=el('p'); const m=/^([•→\-]?\s*[A-Za-z ]{2,12}:)\s*(.*)$/.exec(s);
+  const p=el('p'); const m=/^([•→]\s*[^:]{2,32}:)\s*(.*)$/.exec(s);
   if(m){ p.append(el('b',null,m[1]+' '), document.createTextNode(m[2])); } else p.textContent=s;
   return p;
 }
@@ -214,11 +239,56 @@ function renderLeads(){
     box.append(c);
   });
 }
-document.querySelectorAll('.segbtn button').forEach((b)=>b.addEventListener('click',()=>{
+document.querySelectorAll('#lfilter button').forEach((b)=>b.addEventListener('click',()=>{
   LEAD_FILTER=b.dataset.f;
-  document.querySelectorAll('.segbtn button').forEach((x)=>x.setAttribute('aria-pressed', String(x===b)));
+  document.querySelectorAll('#lfilter button').forEach((x)=>x.setAttribute('aria-pressed', String(x===b)));
   renderLeads();
 }));
+
+let TASKS=[], TASK_FILTER='all';
+const DEPT_SHORT={'Sales':'Sales','Sales – Existing':'Existing','Project Development':'PD','Multimedia':'Multimedia','Digital Marketing':'DM'};
+function taskStatus(t){
+  if(/tercapai/.test(t.status)) return {txt:t.status, cls:' hot'};
+  if(t.status==='Proses') return {txt:'Proses', cls:' prog'};
+  if(t.log) return {txt:'Sedang dikerjakan', cls:' prog'};
+  return {txt:t.status||'Belum mulai', cls:' out'};
+}
+function renderTasks(){
+  const depts=[...new Set(TASKS.map((t)=>t.dept))];
+  const f=$('tfilter');
+  if(!f.childElementCount){
+    [['all','Semua'],...depts.map((d)=>[d,DEPT_SHORT[d]||d])].forEach(([k,lab])=>{
+      const b=el('button',null,lab); b.type='button'; b.dataset.f=k; b.setAttribute('aria-pressed',String(k===TASK_FILTER));
+      b.addEventListener('click',()=>{ TASK_FILTER=k; f.querySelectorAll('button').forEach((x)=>x.setAttribute('aria-pressed',String(x===b))); renderTasks(); });
+      f.append(b);
+    });
+  }
+  const box=$('tasks'); box.replaceChildren();
+  depts.filter((d)=>TASK_FILTER==='all'||d===TASK_FILTER).forEach((d)=>{
+    const list=TASKS.filter((t)=>t.dept===d);
+    const ok=list.filter((t)=>/tercapai/.test(t.status)).length;
+    const g=el('div','tgrp'); const h=el('h3',null,d); h.append(el('span',null,ok+' dari '+list.length+' task capai target')); g.append(h);
+    const ls=el('div','list');
+    list.forEach((t)=>{
+      const c=el('article','task');
+      const top=el('div','top'); const s=taskStatus(t);
+      top.append(el('span','id',t.id), el('span','nm',t.nama), el('span','pill'+s.cls,s.txt)); c.append(top);
+      const pr=el('div','prog'); const m=el('div','meter'); meter(m,num(t.akt),num(t.r),num(t.o));
+      const v=el('span'); v.append(el('strong',null,fmt(num(t.akt))), document.createTextNode(' / target '+(t.r===t.o?t.o:t.r+'–'+t.o)));
+      pr.append(m,v); pr.append(el('span',null,'PIC: '+(t.pic||'—'))); c.append(pr);
+      const lg=parseLog(t.log);
+      if(lg.length) c.append(entryBlock('Catatan terbaru', lg[0])); else c.append(el('p','none','Belum ada laporan harian.'));
+      const extra=[...lg.slice(1).map((e)=>['Catatan',e])];
+      if(t.spv) extra.unshift(['Catatan SPV',{tgl:'',lines:t.spv.split('\n').filter(Boolean)}]);
+      if(extra.length){
+        const dt=el('details'); dt.append(el('summary',null,(t.spv?'Catatan SPV & riwayat':'Riwayat laporan')+' ('+extra.length+')'));
+        const o=el('div','old'); extra.forEach(([k,e])=>o.append(entryBlock(k,e))); dt.append(o); c.append(dt);
+      }
+      ls.append(c);
+    });
+    g.append(ls); box.append(g);
+  });
+}
 
 function render(data){
   const by = (sec) => data.filter((r) => r.bagian===sec);
@@ -239,6 +309,10 @@ function render(data){
   let t = 'Booking fee masuk '+fmt(num(bf.a))+' dari target '+fmt(num(bf.b))+'–'+fmt(num(bf.c))+'. '+fmt(num(tk.a))+' dari '+fmt(num(tk.b))+' task sudah mencapai target realistis';
   if(lead && lead.ok>0) t += ', paling maju '+lead.label+' ('+lead.ok+' dari '+lead.total+' task)';
   $('take').textContent = t+'.';
+
+  // tasks
+  TASKS = by('task').filter((r)=>r.kunci).map((r)=>({id:r.kunci, nama:r.label, dept:r.a, pic:r.b, akt:r.c, r:r.d, o:r.e, status:r.f, log:r.g, spv:r.h}));
+  renderTasks();
 
   // leads
   LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f}));
