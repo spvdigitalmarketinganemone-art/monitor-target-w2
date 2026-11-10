@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor Target Week 2 November</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: kolom tunggal, ringkasan di atas lalu detail. Warna brand Anemone. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#1b2333; --muted:#5d6779; --line:#e3e6ec;
+  --teal:#20AFC4; --teal-d:#178a9b; --pink:#DC306B; --yellow:#FAC12D;
+  --ok:#1f9d6b; --warn:#e3a21a; --grid:#eceff3;
+  --display:'Space Grotesk', Arial, sans-serif; --text:'Inter', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#11161f; --panel:#1a2130; --fg:#e8ecf2; --muted:#a3adbd; --line:#2b3446; --grid:#263043; --ok:#34c48b; --warn:#f0b636;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+header .brand{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-d)}
+header .brand i{width:10px;height:10px;border-radius:50%;background:var(--pink);display:inline-block}
+h1{font-family:var(--display);font-size:clamp(26px,4vw,38px);line-height:1.15;margin:6px 0 4px;text-wrap:balance}
+.meta{color:var(--muted);font-size:13px;margin:0}
+.take{font-size:17px;margin:12px 0 0;max-width:70ch}
+.take b{font-variant-numeric:tabular-nums}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.card{padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card .lab{font-size:13px;color:var(--muted)}
+.card .big{font-family:var(--display);font-size:38px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.card .big small{font-size:20px;color:var(--muted);font-weight:500}
+.meter{height:8px;border-radius:4px;background:var(--grid);position:relative;margin:4px 0}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--teal)}
+.meter i.ok{background:var(--ok)}
+.meter b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.55}
+.panel{padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+h2{font-family:var(--display);font-size:20px;margin:0}
+.note{font-size:13px;color:var(--muted);margin:2px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:minmax(0,190px) minmax(80px,1fr) 110px;gap:14px;align-items:center}
+.rows .bar{display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--grid);position:relative}
+.rows .bar i{display:block;height:100%}
+.rows .bar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.55}
+.rows .val{text-align:right;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rows .val strong{color:var(--fg);font-size:15px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:right;color:var(--muted);font-weight:500;font-size:12px;padding:8px 6px;border-bottom:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:end;height:150px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.day .col{width:100%;max-width:56px;border-radius:6px 6px 2px 2px;background:var(--teal);min-height:3px}
+.day .n{font-weight:600;font-variant-numeric:tabular-nums}
+.day .d{font-size:12px;color:var(--muted)}
+.day.today .d{color:var(--fg);font-weight:600}
+.status{font-size:13px;color:var(--muted);padding:12px 14px;border-radius:10px;border:1px dashed var(--line)}
+.status.err{color:var(--pink);border-color:var(--pink)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:560px){.row{grid-template-columns:1fr auto;gap:6px 10px}.row .bar{grid-column:1 / -1;order:3}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="brand"><i></i>Anemone Indonesia · SPV Franchise Development</span>
+  <h1>Monitor Target Week 2 November</h1>
+  <p class="meta"><span id="periode">10–14 November 2026</span> · Data laporan terakhir: <b id="update">—</b> · Diperbarui otomatis tiap 5 menit</p>
+  <p class="take" id="take">Memuat data…</p>
+</header>
+
+<div id="status" class="status" hidden></div>
+
+<section class="tiles" aria-label="Angka utama">
+  <div class="card"><span class="lab">Booking fee masuk</span><span class="big" id="k-bf">—</span><div class="meter" id="m-bf"></div><span class="lab" id="t-bf">Target —</span></div>
+  <div class="card"><span class="lab">Pelunasan franchisee existing</span><span class="big" id="k-lunas">—</span><div class="meter" id="m-lunas"></div><span class="lab" id="t-lunas">Target —</span></div>
+  <div class="card"><span class="lab">Potensi pelunasan</span><span class="big" id="k-pot">—</span><div class="meter" id="m-pot"></div><span class="lab" id="t-pot">Target —</span></div>
+  <div class="card"><span class="lab">Task capai target realistis</span><span class="big" id="k-task">—</span><div class="meter" id="m-task"></div><span class="lab">dari semua task di 4 departemen</span></div>
+</section>
+
+<section class="panel" aria-labelledby="h-dept">
+  <div><h2 id="h-dept">Progress per departemen</h2><p class="note">Jumlah task tiap departemen menurut statusnya.</p></div>
+  <div class="legend"><span><i class="sw" style="background:var(--ok)"></i>Target tercapai</span><span><i class="sw" style="background:var(--warn)"></i>Proses</span><span><i class="sw" style="background:var(--grid);border:1px solid var(--line)"></i>Belum mulai</span></div>
+  <div class="rows" id="dept"></div>
+</section>
+
+<div class="two">
+  <section class="panel" aria-labelledby="h-stage">
+    <div><h2 id="h-stage">Posisi lead sprint closing</h2><p class="note">19 lead prioritas (Segmen A) per stage. Garis tipis = posisi awal minggu.</p></div>
+    <div class="rows" id="stage"></div>
+  </section>
+  <section class="panel" aria-labelledby="h-seg">
+    <div><h2 id="h-seg">Eksekusi follow up</h2><p class="note">Per segmen dari 103 hot leads Jan–Sep 2026.</p></div>
+    <div class="scroll"><table class="tbl"><thead><tr><th>Segmen</th><th>Lead</th><th>Dihubungi</th><th>Membalas</th><th>BF</th></tr></thead><tbody id="seg"></tbody></table></div>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="h-day">
+  <div><h2 id="h-day">Laporan harian masuk</h2><p class="note">Jumlah baris laporan dari semua departemen per hari.</p></div>
+  <div class="days" id="days"></div>
+</section>
+
+<footer>Sumber: spreadsheet internal tim (tab Rekap Publik, angka agregat tanpa data pribadi lead). Halaman ini hanya membaca, tidak bisa mengubah data.</footer>
+</div>
+
+<script>
+// Tempel link CSV hasil "Publikasikan ke web" tab Rekap Publik di sini:
+const CSV_URL_DEFAULT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTAmiZOhfVb0ZHnjWWcmndOv5qXoUaBI_Ym-k7y3x8aakRNTuTNMrP1ywRkDHrmZhwpA3OX94efin0J/pub?gid=900106&single=true&output=csv';
+const CSV_URL = new URLSearchParams(location.search).get('src') || CSV_URL_DEFAULT;
+
+function parseCSV(text){
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cell); cell=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; }
+    else cell+=c;
+  }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+const num = (s) => { const n = Number(String(s ?? '').replace(/\./g,'').replace(',','.')); return Number.isFinite(n) ? n : 0; };
+const fmt = (n) => n.toLocaleString('id-ID');
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, txt) => { const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
+
+function meter(node, val, r, o){
+  node.replaceChildren();
+  const max = Math.max(o, val, 1);
+  const f = el('i', val>0 && val>=r ? 'ok' : ''); f.style.width = Math.min(100, val/max*100)+'%'; node.append(f);
+  if(r>0 && r<max){ const t=el('b'); t.style.left='calc('+(r/max*100)+'% - 1px)'; node.append(t); }
+  node.setAttribute('role','img'); node.setAttribute('aria-label', val+' dari target realistis '+r+' dan optimis '+o);
+}
+
+function render(data){
+  const by = (sec) => data.filter((r) => r.bagian===sec);
+  const kpi = Object.fromEntries(by('kpi').map((r)=>[r.kunci,r]));
+  const meta = Object.fromEntries(by('meta').map((r)=>[r.kunci,r]));
+  if(meta.update && meta.update.a) $('update').textContent = meta.update.a;
+  if(meta.periode && meta.periode.a) $('periode').textContent = meta.periode.a;
+
+  const bf=kpi.bf||{}, lu=kpi.lunas||{}, po=kpi.potensi||{}, tk=kpi.task||{};
+  $('k-bf').textContent = fmt(num(bf.a)); meter($('m-bf'), num(bf.a), num(bf.b), num(bf.c)); $('t-bf').textContent = 'Target '+fmt(num(bf.b))+' realistis · '+fmt(num(bf.c))+' optimis';
+  $('k-lunas').textContent = fmt(num(lu.a)); meter($('m-lunas'), num(lu.a), num(lu.b), num(lu.c)); $('t-lunas').textContent = 'Target '+fmt(num(lu.b))+' realistis · '+fmt(num(lu.c))+' optimis';
+  $('k-pot').replaceChildren(document.createTextNode('Rp'+fmt(num(po.a))), el('small',null,' jt')); meter($('m-pot'), num(po.a), num(po.b), num(po.c)); $('t-pot').textContent = 'Target Rp'+fmt(num(po.b))+'–'+fmt(num(po.c))+' jt · Rp50 jt per outlet';
+  $('k-task').replaceChildren(document.createTextNode(fmt(num(tk.a))), el('small',null,' / '+fmt(num(tk.b)))); meter($('m-task'), num(tk.a), num(tk.b), num(tk.b));
+
+  // takeaway
+  const depts = by('dept').map((r)=>({label:r.label, total:num(r.a), ok:num(r.b), pr:num(r.c), no:num(r.d)}));
+  const lead = depts.slice().sort((a,b)=> (b.ok/(b.total||1))-(a.ok/(a.total||1)))[0];
+  let t = 'Booking fee masuk '+fmt(num(bf.a))+' dari target '+fmt(num(bf.b))+'–'+fmt(num(bf.c))+'. '+fmt(num(tk.a))+' dari '+fmt(num(tk.b))+' task sudah mencapai target realistis';
+  if(lead && lead.ok>0) t += ', paling maju '+lead.label+' ('+lead.ok+' dari '+lead.total+' task)';
+  $('take').textContent = t+'.';
+
+  // dept
+  const dn=$('dept'); dn.replaceChildren();
+  depts.forEach((d)=>{
+    const row=el('div','row'); dn.append(row);
+    row.append(el('div',null,d.label));
+    const bar=el('div','bar'); bar.setAttribute('role','img'); bar.setAttribute('aria-label', d.label+': '+d.ok+' tercapai, '+d.pr+' proses, '+d.no+' belum mulai dari '+d.total);
+    [['ok','var(--ok)'],['pr','var(--warn)']].forEach(([k,c])=>{ if(d[k]>0&&d.total>0){ const i=el('i'); i.style.width=(d[k]/d.total*100)+'%'; i.style.background=c; bar.append(i);} });
+    row.append(bar);
+    const v=el('div','val'); v.append(el('strong',null,String(d.ok)), document.createTextNode(' / '+d.total+' tercapai')); row.append(v);
+  });
+
+  // stage
+  const st = by('stage').map((r)=>({label:r.label, n:num(r.a), awal:num(r.b)}));
+  const sm = Math.max(1, ...st.map((s)=>Math.max(s.n,s.awal)));
+  const sn=$('stage'); sn.replaceChildren();
+  st.forEach((s)=>{
+    const row=el('div','row'); sn.append(row);
+    row.append(el('div',null,s.label));
+    const bar=el('div','bar'); bar.setAttribute('role','img'); bar.setAttribute('aria-label', s.label+': '+s.n+' lead, awal minggu '+s.awal);
+    const i=el('i'); i.style.width=(s.n/sm*100)+'%'; i.style.background = /^6\./.test(s.label)||s.label==='Sudah fix' ? 'var(--ok)' : (s.label==='Tidak Lanjut' ? 'var(--muted)' : 'var(--teal)'); bar.append(i);
+    if(s.awal>0){ const b=el('b'); b.style.left='calc('+(s.awal/sm*100)+'% - 1px)'; bar.append(b); }
+    row.append(bar);
+    const v=el('div','val'); v.append(el('strong',null,String(s.n)), document.createTextNode(' lead')); row.append(v);
+  });
+
+  // segmen
+  const sg=$('seg'); sg.replaceChildren();
+  by('segmen').forEach((r)=>{
+    const tr=document.createElement('tr');
+    [r.label, fmt(num(r.a)), fmt(num(r.b)), fmt(num(r.c)), fmt(num(r.d))].forEach((x)=>tr.append(el('td',null,x)));
+    sg.append(tr);
+  });
+
+  // days
+  const dy=by('hari').map((r)=>({k:r.kunci,label:r.label,n:num(r.a)}));
+  const dmax=Math.max(1,...dy.map((d)=>d.n));
+  const today=new Date(Date.now()+7*3600e3).toISOString().slice(0,10); // WIB
+  const dd=$('days'); dd.replaceChildren();
+  dy.forEach((d)=>{
+    const box=el('div','day'+(d.k===today?' today':''));
+    box.append(el('span','n',String(d.n)));
+    const c=el('div','col'); c.style.height=(d.n/dmax*100)+'%'; if(d.n===0) c.style.opacity='.25'; box.append(c);
+    box.append(el('span','d',d.label));
+    dd.append(box);
+  });
+}
+
+async function load(){
+  const s=$('status');
+  if(!CSV_URL || CSV_URL.startsWith('TEMPEL')){ s.hidden=false; s.className='status err'; s.textContent='Link CSV belum diisi. Tempel link "Publikasikan ke web" tab Rekap Publik di CSV_URL_DEFAULT.'; $('take').textContent='Data belum tersambung.'; return; }
+  try{
+    const res = await fetch(CSV_URL + (CSV_URL.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows = parseCSV(await res.text()).filter((r)=>r.length>1);
+    const head = rows[0].map((h)=>h.trim());
+    const data = rows.slice(1).map((r)=>Object.fromEntries(head.map((h,i)=>[h,(r[i]||'').trim()])));
+    render(data);
+    s.hidden=true;
+  }catch(e){
+    s.hidden=false; s.className='status err'; s.textContent='Gagal memuat data ('+e.message+'). Pastikan tab Rekap Publik sudah dipublikasikan ke web sebagai CSV.';
+  }
+}
+load();
+setInterval(load, 5*60*1000);
+</script>
+</body>
+</html>
