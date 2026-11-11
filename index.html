@@ -259,6 +259,7 @@ function renderLeads(){
     const st=parseLog(l.status), up=parseLog(l.update);
     c.append(entryBlock('Status terbaru', st[0]));
     c.append(entryBlock('Last update', up[0]));
+    if(l.pd) c.append(entryBlock('Keputusan PD', {tgl:'', lines:l.pd.split('\n').filter(Boolean)}));
     const old=[...st.slice(1).map((e)=>['Status',e]), ...up.slice(1).map((e)=>['Update',e])];
     if(old.length){
       const d=el('details'); d.append(el('summary',null,'Riwayat sebelumnya ('+old.length+')'));
@@ -407,7 +408,7 @@ function render(data){
   renderTasks();
 
   // leads
-  LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f}));
+  LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f, pd:r.g}));
   renderLeads();
   renderUpdates(by('dept').map((r)=>({key:r.kunci, label:r.label})));
   renderInfo(by('info'));
