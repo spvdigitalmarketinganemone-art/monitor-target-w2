@@ -106,6 +106,23 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .lead details{font-size:13px;color:var(--muted)}
 .lead details summary{cursor:pointer;color:var(--teal-d)}
 .lead details .old{margin-top:6px;padding-left:10px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.upd{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
+.ucard{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel)}
+.ucard h3{margin:0;font-size:15px;display:flex;justify-content:space-between;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.ucard h3 span{font-size:12px;font-weight:500;color:var(--muted)}
+.ulist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.ulist li{display:flex;flex-direction:column;gap:2px;padding-left:10px;border-left:2px solid var(--teal);min-width:0}
+.ulist .when{font-size:12px;font-weight:600;color:var(--teal-d);font-variant-numeric:tabular-nums}
+.ulist .what{font-size:14px;overflow-wrap:anywhere}
+.ulist .what b{font-weight:600}
+.ulist .what em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.ulist .txt{margin:0;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.ulist .txt.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ulist .more{font:inherit;font-size:12px;align-self:flex-start;border:0;background:transparent;color:var(--teal-d);padding:0;cursor:pointer;text-decoration:underline}
+.ulist .more:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.ucard details{font-size:13px;color:var(--muted)}
+.ucard details summary{cursor:pointer;color:var(--teal-d);margin-bottom:10px}
+.uempty{margin:0;font-size:13px;color:var(--muted);font-style:italic}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:560px){.row{grid-template-columns:1fr auto;gap:6px 10px}.row .bar{grid-column:1 / -1;order:3}}
 </style>
@@ -126,6 +143,11 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div class="card"><span class="lab">Pelunasan franchisee existing</span><span class="big" id="k-lunas">—</span><div class="meter" id="m-lunas"></div><span class="lab" id="t-lunas">Target —</span></div>
   <div class="card"><span class="lab">Potensi pelunasan</span><span class="big" id="k-pot">—</span><div class="meter" id="m-pot"></div><span class="lab" id="t-pot">Target —</span></div>
   <div class="card"><span class="lab">Task capai target realistis</span><span class="big" id="k-task">—</span><div class="meter" id="m-task"></div><span class="lab">dari semua task di 4 departemen</span></div>
+</section>
+
+<section class="panel" aria-labelledby="h-upd">
+  <div><h2 id="h-upd">Update terakhir per departemen</h2><p class="note">Kejadian terbaru tiap departemen: status hot lead prioritas (Sales) dan laporan harian task (departemen lain). Otomatis dari sheet.</p></div>
+  <div class="upd" id="upd"></div>
 </section>
 
 <section class="panel" aria-labelledby="h-dept">
@@ -290,6 +312,62 @@ function renderTasks(){
   });
 }
 
+// Update terakhir per departemen: dibangun dari baris 'lead' dan 'task' yang sudah ada di Rekap Publik.
+const dval = (s) => { const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s||'').trim()); return m ? Date.UTC(+m[3],+m[2]-1,+m[1]) : 0; };
+function plainLine(s){
+  const m=/^\u2022\s*([^:]{2,60}):\s*(.*)$/.exec(s);
+  return m ? m[2] : String(s).replace(/^\u2192\s*/,'');
+}
+function updEntries(deptKey){
+  const out=[];
+  if(deptKey==='Sales'){
+    LEADS.forEach((l)=>{
+      const e=parseLog(l.status)[0]; const t=e ? dval(e.tgl) : 0;
+      if(!t||!e.lines.length) return;
+      out.push({t, tgl:e.tgl, ord:Number(l.rank)||99, subject:'Hot lead prioritas '+l.nama, tag:(Number(l.rank)<=6?'super prioritas · ':'')+(l.stage||''), text:e.lines.join('; ')});
+    });
+  } else {
+    TASKS.filter((t)=>t.dept===deptKey).forEach((t)=>{
+      const best=parseLog(t.log).filter((e)=>e.tgl&&dval(e.tgl)).sort((a,b)=>dval(b.tgl)-dval(a.tgl))[0];
+      if(!best) return;
+      const first=best.lines.find((x)=>!/^\u2192/.test(x));
+      const s=taskStatus(t);
+      out.push({t:dval(best.tgl), tgl:best.tgl, ord:out.length, subject:t.id+' \u00b7 '+t.nama, tag:s.txt+' \u00b7 aktual '+fmt(num(t.akt))+' dari target '+(t.r===t.o?t.o:t.r+'\u2013'+t.o), text:first?plainLine(first):''});
+    });
+  }
+  return out.sort((a,b)=>(b.t-a.t)||(a.ord-b.ord));
+}
+function updItem(e){
+  const li=el('li');
+  li.append(el('span','when',e.tgl));
+  const w=el('div','what'); w.append(el('b',null,e.subject)); if(e.tag) w.append(el('em',null,e.tag)); li.append(w);
+  if(e.text){
+    const p=el('p','txt'+(e.text.length>150?' clamp':''),e.text); li.append(p);
+    if(e.text.length>150){
+      const b=el('button','more','selengkapnya'); b.type='button'; b.setAttribute('aria-expanded','false');
+      b.addEventListener('click',()=>{ const open=p.classList.toggle('clamp')===false; b.textContent=open?'ringkas':'selengkapnya'; b.setAttribute('aria-expanded',String(open)); });
+      li.append(b);
+    }
+  }
+  return li;
+}
+function renderUpdates(depts){
+  const box=$('upd'); box.replaceChildren();
+  depts.forEach((d)=>{
+    const list=updEntries(d.key);
+    const c=el('article','ucard'); const h=el('h3',null,d.label);
+    h.append(el('span',null,list.length ? 'terakhir '+list[0].tgl : 'belum ada laporan')); c.append(h);
+    if(!list.length){ c.append(el('p','uempty','Belum ada update tercatat.')); box.append(c); return; }
+    const same=list.filter((e)=>e.t===list[0].t).length; const show=Math.min(Math.max(3,same),5);
+    const ul=el('ul','ulist'); list.slice(0,show).forEach((e)=>ul.append(updItem(e))); c.append(ul);
+    if(list.length>show){
+      const dt=el('details'); dt.append(el('summary',null,'Update sebelumnya ('+(list.length-show)+')'));
+      const u2=el('ul','ulist'); list.slice(show).forEach((e)=>u2.append(updItem(e))); dt.append(u2); c.append(dt);
+    }
+    box.append(c);
+  });
+}
+
 function render(data){
   const by = (sec) => data.filter((r) => r.bagian===sec);
   const kpi = Object.fromEntries(by('kpi').map((r)=>[r.kunci,r]));
@@ -317,6 +395,7 @@ function render(data){
   // leads
   LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f}));
   renderLeads();
+  renderUpdates(by('dept').map((r)=>({key:r.kunci, label:r.label})));
 
   // dept
   const dn=$('dept'); dn.replaceChildren();
