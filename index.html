@@ -362,7 +362,7 @@ function renderInfo(rows){
   const list=rows.filter((r)=>r.b).map((r)=>({t:dval(r.a), tgl:r.a, text:r.b, who:r.label||'Info'})).sort((a,b)=>b.t-a.t);
   if(!list.length){ box.hidden=true; return; }
   box.hidden=false;
-  box.append(el('div','ittl','Info dari owner (bukan dari sheet laporan)'));
+  box.append(el('div','ittl','Info dari SPV Digital Marketing (bukan dari sheet laporan)'));
   list.forEach((e)=>{ const r=el('div','irow'); r.append(el('span','when',e.tgl), el('span',null,e.text)); box.append(r); });
 }
 function renderUpdates(depts){
