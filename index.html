@@ -122,6 +122,11 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .ulist .more:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .ucard details{font-size:13px;color:var(--muted)}
 .ucard details summary{cursor:pointer;color:var(--teal-d);margin-bottom:10px}
+.infobox{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--pink);background:var(--panel)}
+.infobox[hidden]{display:none}
+.infobox .ittl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.infobox .irow{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:14px;overflow-wrap:anywhere}
+.infobox .irow .when{font-size:12px;font-weight:600;color:var(--teal-d);font-variant-numeric:tabular-nums}
 .uempty{margin:0;font-size:13px;color:var(--muted);font-style:italic}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:560px){.row{grid-template-columns:1fr auto;gap:6px 10px}.row .bar{grid-column:1 / -1;order:3}}
@@ -147,6 +152,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 
 <section class="panel" aria-labelledby="h-upd">
   <div><h2 id="h-upd">Update terakhir per departemen</h2><p class="note">Kejadian terbaru tiap departemen: status hot lead prioritas (Sales) dan laporan harian task (departemen lain). Otomatis dari sheet.</p></div>
+  <div class="infobox" id="info" hidden></div>
   <div class="upd" id="upd"></div>
 </section>
 
@@ -351,6 +357,14 @@ function updItem(e){
   }
   return li;
 }
+function renderInfo(rows){
+  const box=$('info'); box.replaceChildren();
+  const list=rows.filter((r)=>r.b).map((r)=>({t:dval(r.a), tgl:r.a, text:r.b, who:r.label||'Info'})).sort((a,b)=>b.t-a.t);
+  if(!list.length){ box.hidden=true; return; }
+  box.hidden=false;
+  box.append(el('div','ittl','Info dari Mas Dias (bukan dari sheet laporan)'));
+  list.forEach((e)=>{ const r=el('div','irow'); r.append(el('span','when',e.tgl), el('span',null,e.text)); box.append(r); });
+}
 function renderUpdates(depts){
   const box=$('upd'); box.replaceChildren();
   depts.forEach((d)=>{
@@ -396,6 +410,7 @@ function render(data){
   LEADS = by('lead').filter((r)=>r.label).map((r)=>({rank:r.kunci, nama:r.label, kota:r.a, pic:r.b, stage:r.c, tier:r.d, status:r.e, update:r.f}));
   renderLeads();
   renderUpdates(by('dept').map((r)=>({key:r.kunci, label:r.label})));
+  renderInfo(by('info'));
 
   // dept
   const dn=$('dept'); dn.replaceChildren();
