@@ -522,5 +522,38 @@ async function load(){
 load();
 setInterval(load, 5*60*1000);
 </script>
+<script>/* format teks kartu Update terakhir per departemen */
+(function(){
+  var ABBR=/(?:\b(?:Kec|Kab|Jl|No|Dr|Ir|Mr|Ms|dr|PM|St|Sp|S|M)\.)$/;
+  function sentences(t){
+    var out=[], buf='';
+    t.split(/(?<=[.!?])\s+(?=[A-Z(\[])/).forEach(function(p){ buf = buf ? buf+' '+p : p; if(!ABBR.test(buf)){ out.push(buf); buf=''; } });
+    if(buf) out.push(buf);
+    return out;
+  }
+  function fmt(p){
+    if(p.dataset.fmt) return;
+    var raw=p.textContent.replace(/\s+/g,' ').trim();
+    p.dataset.fmt='1';
+    if(raw.length<140) return;
+    var lines=[];
+    sentences(raw).forEach(function(s,i){
+      var nums=s.split(/\s*\((\d{1,2})\)\s*/);
+      if(nums.length>2){
+        if(nums[0].trim()) lines.push((i?'\u2022 ':'')+nums[0].trim());
+        for(var j=1;j<nums.length;j+=2) lines.push(nums[j]+'. '+(nums[j+1]||'').trim());
+      } else lines.push((i?'\u2022 ':'')+s);
+    });
+    p.textContent=lines.join('\n');
+    p.classList.add('fmt');
+  }
+  function run(){ document.querySelectorAll('#upd p.txt').forEach(fmt); }
+  var st=document.createElement('style');
+  st.textContent='#upd p.txt.fmt{white-space:pre-line;line-height:1.55}';
+  document.head.append(st);
+  var box=document.getElementById('upd');
+  if(box){ new MutationObserver(run).observe(box,{childList:true,subtree:true}); run(); }
+})();
+</script>
 </body>
 </html>
