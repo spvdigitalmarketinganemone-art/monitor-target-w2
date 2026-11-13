@@ -139,6 +139,9 @@ h2{font-family:var(--display);font-size:20px;margin:0}
 .infobox .ittl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .infobox .irow{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:14px;overflow-wrap:anywhere}
 .infobox .irow .when{font-size:12px;font-weight:600;color:var(--teal-d);font-variant-numeric:tabular-nums}
+.panel[hidden]{display:none}
+.tbl tr.tot td{font-weight:600;border-top:2px solid var(--line);border-bottom:0}
+.tbl td.dim{color:var(--muted)}
 .uempty{margin:0;font-size:13px;color:var(--muted);font-style:italic}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:560px){.row{grid-template-columns:1fr auto;gap:6px 10px}.row .bar{grid-column:1 / -1;order:3}}
@@ -188,6 +191,11 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
     <div class="segbtn" id="lfilter" role="group" aria-label="Pilih daftar lead"><button type="button" data-f="6" aria-pressed="true">6 super prioritas</button><button type="button" data-f="all" aria-pressed="false">Semua 19 lead</button></div>
   </div>
   <div class="leads" id="leads"></div>
+</section>
+
+<section class="panel" aria-labelledby="h-ruko" id="s-ruko" hidden>
+  <div><h2 id="h-ruko">Progress cari ruko</h2><p class="note">Jumlah listing ruko sewa yang sudah ditemukan untuk tiap lead. Otomatis dari sheet pencarian ruko; hanya jumlah, tanpa alamat, harga, dan kontak. <span id="ruko-upd"></span></p></div>
+  <div class="scroll"><table class="tbl"><thead><tr><th>Lead</th><th>Ruko ditemukan</th><th>Ada nomor kontak</th><th>Tanpa nomor</th><th>Update terakhir</th></tr></thead><tbody id="ruko"></tbody></table></div>
 </section>
 
 <div class="two">
@@ -402,6 +410,21 @@ function updItem(e){
   }
   return li;
 }
+// Progress cari ruko: baris 'ruko' di Rekap Publik (kunci = lead, a = jumlah, b = bernomor, c = tanpa nomor, d = tanggal yyyy-mm-dd).
+function renderRuko(rows){
+  const sec=$('s-ruko'), box=$('ruko'); box.replaceChildren();
+  const dfmt=(x)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(x||'').trim()); return m ? m[3]+'/'+m[2]+'/'+m[1] : ''; };
+  const all=rows.filter((r)=>r.kunci).map((r)=>({k:r.kunci, label:r.label||r.kunci, n:num(r.a), ok:num(r.b), no:num(r.c), tgl:dfmt(r.d)}));
+  const tot=all.find((r)=>r.k==='TOTAL');
+  const list=all.filter((r)=>r.k!=='TOTAL').sort((x,y)=>(Number(/^Belum ada lead/i.test(x.k))-Number(/^Belum ada lead/i.test(y.k)))||(y.n-x.n)||x.label.localeCompare(y.label));
+  if(!list.length){ sec.hidden=true; return; }
+  sec.hidden=false;
+  const tr=(r,cls)=>{ const t=document.createElement('tr'); if(cls) t.className=cls;
+    [r.label, fmt(r.n), fmt(r.ok), fmt(r.no), r.tgl||'\u2014'].forEach((x,i)=>t.append(el('td', r.n===0&&i>0&&!cls?'dim':null, x))); return t; };
+  list.forEach((r)=>box.append(tr(r)));
+  if(tot) box.append(tr({label:'Total', n:tot.n, ok:tot.ok, no:tot.no, tgl:tot.tgl},'tot'));
+  $('ruko-upd').textContent = tot && tot.tgl ? 'Data terakhir: '+tot.tgl+'.' : '';
+}
 function renderInfo(rows){
   const box=$('info'); box.replaceChildren();
   const list=rows.filter((r)=>r.b).map((r)=>({t:dval(r.a), tgl:r.a, text:r.b, who:r.label||'Info'})).sort((a,b)=>b.t-a.t);
@@ -456,6 +479,7 @@ function render(data){
   renderLeads();
   renderUpdates(by('dept').map((r)=>({key:r.kunci, label:r.label})));
   renderInfo(by('info'));
+  renderRuko(by('ruko'));
 
   // dept
   const dn=$('dept'); dn.replaceChildren();
